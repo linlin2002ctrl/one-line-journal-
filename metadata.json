@@ -1,0 +1,5 @@
+{
+  "name": "OneLine",
+  "description": "A minimalist, dark-mode journaling PWA where users capture their day in a single sentence. Features Notion integration capability, mood tracking, and a mobile-first design.",
+  "requestFramePermissions": []
+}
