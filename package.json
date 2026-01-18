@@ -1,7 +1,7 @@
 {
   "name": "oneline-journal",
   "version": "1.0.0",
-  "type": "module",   <--- ဒီစာကြောင်းလေးကို name အောက်မှာ ထပ်ဖြည့်ပေးပါ
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
