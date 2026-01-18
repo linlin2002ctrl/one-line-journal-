@@ -1,4 +1,4 @@
-import { IJournalService, JournalEntry, NotionConfig, Mood } from '../types';
+import { IJournalService, JournalEntry, NotionConfig, Mood, SaveResult } from '../types';
 
 const STORAGE_KEY = 'oneline_entries';
 const CONFIG_KEY = 'oneline_config';
@@ -37,15 +37,15 @@ export class MockJournalService implements IJournalService {
   }
 
   async getEntries(): Promise<JournalEntry[]> {
-    // Simulate network delay for effect, though purely local now
+    // Simulate network delay for effect
     await new Promise(resolve => setTimeout(resolve, 300));
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   }
 
-  async saveEntry(entry: Omit<JournalEntry, 'id'>): Promise<JournalEntry> {
+  async saveEntry(entry: Omit<JournalEntry, 'id'>): Promise<SaveResult> {
     // 1. Optimistic Update: Save to Local Storage immediately
-    await new Promise(resolve => setTimeout(resolve, 500)); // Keep a small delay for UI feel
+    await new Promise(resolve => setTimeout(resolve, 500)); 
     
     const newEntry: JournalEntry = {
       ...entry,
@@ -77,18 +77,26 @@ export class MockJournalService implements IJournalService {
          if (!response.ok) {
            const errorData = await response.json();
            console.error('Notion Sync Failed:', errorData);
-           // In a full app, we might mark the entry as "unsynced" in local storage here
+           return { 
+             entry: newEntry, 
+             synced: false, 
+             error: errorData.error || errorData.details || 'Server returned an error.' 
+           };
          } else {
-           console.log('Successfully synced to Notion');
+           return { entry: newEntry, synced: true };
          }
-       } catch (error) {
+       } catch (error: any) {
          console.error('Network Error during Notion Sync:', error);
+         return { 
+           entry: newEntry, 
+           synced: false, 
+           error: error.message || 'Network error occurred.' 
+         };
        }
-    } else {
-      console.warn('Skipping Notion sync: Missing API Key or Database ID');
     }
 
-    return newEntry;
+    // Default case: Saved locally, no sync attempted (Preview Mode or No Config)
+    return { entry: newEntry, synced: false };
   }
 
   updateConfig(config: NotionConfig): void {

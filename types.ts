@@ -18,9 +18,15 @@ export interface NotionConfig {
   databaseId: string;
 }
 
+export interface SaveResult {
+  entry: JournalEntry;
+  synced: boolean;
+  error?: string;
+}
+
 export interface IJournalService {
   getEntries(): Promise<JournalEntry[]>;
-  saveEntry(entry: Omit<JournalEntry, 'id'>): Promise<JournalEntry>;
+  saveEntry(entry: Omit<JournalEntry, 'id'>): Promise<SaveResult>;
   updateConfig(config: NotionConfig): void;
 }
 

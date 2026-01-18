@@ -53,11 +53,19 @@ export default function App() {
     
     setIsSaving(true);
     try {
-      await journalService.saveEntry({
+      const result = await journalService.saveEntry({
         text,
         mood,
         date: new Date().toISOString()
       });
+
+      if (result.synced) {
+        alert('Entry Saved to Notion!');
+      } else if (result.error) {
+        // Saved locally but failed to sync
+        alert(`Saved locally, but failed to sync with Notion: ${result.error}`);
+      }
+
       setText('');
       setMood(Mood.Neutral);
       // Switch to history to see the new entry
@@ -75,6 +83,8 @@ export default function App() {
     journalService.updateConfig(config);
     alert('Settings saved!');
   };
+
+  const isConfigured = config.apiKey && config.databaseId;
 
   // Render Helpers
   const renderWrite = () => (
@@ -140,13 +150,15 @@ export default function App() {
       </header>
 
       <div className="space-y-6">
-        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex gap-3 items-start">
-          <AlertCircle className="text-blue-400 shrink-0 mt-0.5" size={20} />
-          <div className="text-sm text-blue-200">
-            <p className="font-semibold mb-1">Preview Mode</p>
-            <p className="opacity-80">Currently saving to local storage for demo purposes. Fill in the details below to prepare for Notion sync.</p>
+        {!isConfigured && (
+          <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex gap-3 items-start">
+            <AlertCircle className="text-blue-400 shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-blue-200">
+              <p className="font-semibold mb-1">Preview Mode</p>
+              <p className="opacity-80">Currently saving to local storage for demo purposes. Fill in the details below to prepare for Notion sync.</p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-4">
           <div>
