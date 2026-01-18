@@ -7,7 +7,7 @@ const CONFIG_KEY = 'oneline_config';
  * Journal Service
  * Manages local storage for offline capability and syncs with the Vercel/Notion backend.
  */
-export class MockJournalService implements IJournalService {
+export class JournalService implements IJournalService {
   private config: NotionConfig | null = null;
 
   constructor() {
@@ -37,7 +37,32 @@ export class MockJournalService implements IJournalService {
   }
 
   async getEntries(): Promise<JournalEntry[]> {
-    // Simulate network delay for effect
+    // 1. Fetch from Notion API if Configured
+    if (this.config?.apiKey && this.config?.databaseId) {
+      try {
+        const response = await fetch('/api/notion', {
+          method: 'GET',
+          headers: {
+            'x-notion-token': this.config.apiKey,
+            'x-database-id': this.config.databaseId
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return data;
+        } else {
+          console.error("Failed to fetch entries from Notion API");
+          // If fetch fails (e.g. auth error), return empty or handle gracefully
+          return [];
+        }
+      } catch (error) {
+        console.error("Network error fetching entries:", error);
+        return [];
+      }
+    }
+
+    // 2. Preview Mode (Local Storage) - Only used if not configured
     await new Promise(resolve => setTimeout(resolve, 300));
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -45,6 +70,7 @@ export class MockJournalService implements IJournalService {
 
   async saveEntry(entry: Omit<JournalEntry, 'id'>): Promise<SaveResult> {
     // 1. Optimistic Update: Save to Local Storage immediately
+    // We keep this for "Preview Mode" continuity and potential offline support
     await new Promise(resolve => setTimeout(resolve, 500)); 
     
     const newEntry: JournalEntry = {
@@ -52,9 +78,10 @@ export class MockJournalService implements IJournalService {
       id: crypto.randomUUID()
     };
 
-    const currentEntries = await this.getEntries();
+    // Update local storage so Preview Mode still works if keys are cleared
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const currentEntries = raw ? JSON.parse(raw) : [];
     const updatedEntries = [newEntry, ...currentEntries];
-    
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
     
     // 2. Real Sync to Notion via Vercel Function
@@ -95,7 +122,7 @@ export class MockJournalService implements IJournalService {
        }
     }
 
-    // Default case: Saved locally, no sync attempted (Preview Mode or No Config)
+    // Default case: Saved locally (Preview Mode)
     return { entry: newEntry, synced: false };
   }
 
@@ -106,4 +133,4 @@ export class MockJournalService implements IJournalService {
 }
 
 // Singleton instance
-export const journalService = new MockJournalService();
+export const journalService = new JournalService();

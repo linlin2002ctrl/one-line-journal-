@@ -1,65 +1,59 @@
+// api/notion.js
 import { Client } from '@notionhq/client';
 
 export default async function handler(req, res) {
-  // ၁။ POST မဟုတ်ရင် လက်မခံဘူး
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  // ၁။ API Key စစ်ဆေးခြင်း
+  const apiKey = req.headers['x-notion-token'];
+  const databaseId = req.headers['x-database-id'];
+
+  if (!apiKey || !databaseId) {
+    return res.status(401).json({ error: 'Missing API Key or Database ID' });
   }
 
+  const notion = new Client({ auth: apiKey });
+
   try {
-    // ၂။ API Key တွေကို Header ကနေ ယူမယ်
-    const apiKey = req.headers['x-notion-token'];
-    const databaseId = req.headers['x-database-id'];
-
-    if (!apiKey || !databaseId) {
-      return res.status(401).json({ error: 'Missing Notion API Key or Database ID' });
+    // === အပိုင်း (က) - စာပို့ခြင်း (POST) ===
+    if (req.method === 'POST') {
+      const { text, mood, date } = req.body;
+      await notion.pages.create({
+        parent: { database_id: databaseId },
+        properties: {
+          'Journal Entry': { title: [{ text: { content: text } }] },
+          'Mood': { select: { name: mood } },
+          'Date': { date: { start: date } },
+        },
+      });
+      return res.status(200).json({ success: true });
     }
 
-    // ၃။ Body ထဲက Data ကို ယူမယ်
-    const { text, mood, date } = req.body;
+    // === အပိုင်း (ခ) - စာပြန်ယူခြင်း (GET) ===
+    else if (req.method === 'GET') {
+      const response = await notion.databases.query({
+        database_id: databaseId,
+        sorts: [{ property: 'Date', direction: 'descending' }], // ရက်စွဲနဲ့ စီမယ်
+      });
 
-    if (!text || !mood || !date) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      // Notion ရဲ့ ရှုပ်ထွေးတဲ့ Data တွေကို ရိုးရိုးရှင်းရှင်း ပြောင်းမယ်
+      const formattedData = response.results.map((page) => {
+        return {
+          id: page.id,
+          text: page.properties['Journal Entry']?.title[0]?.plain_text || 'No Title',
+          mood: page.properties['Mood']?.select?.name || 'Neutral',
+          date: page.properties['Date']?.date?.start || '',
+        };
+      });
+
+      return res.status(200).json(formattedData);
     }
 
-    // ၄။ Notion Client ကို စမယ်
-    const notion = new Client({ auth: apiKey });
-
-    // ၅။ Notion Database ထဲ ထည့်မယ်
-    await notion.pages.create({
-      parent: { database_id: databaseId },
-      properties: {
-        'Journal Entry': {
-          title: [
-            {
-              text: {
-                content: text,
-              },
-            },
-          ],
-        },
-        'Mood': {
-          select: {
-            name: mood,
-          },
-        },
-        'Date': {
-          date: {
-            start: date,
-          },
-        },
-      },
-    });
-
-    // ၆။ အောင်မြင်ကြောင်း ပြန်ပြောမယ်
-    return res.status(200).json({ success: true });
+    // အခြား Method တွေ လက်မခံဘူး
+    else {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
 
   } catch (error) {
-    console.error('Notion API Error:', error);
-    // Error အကြောင်းရင်းကို အတိအကျ ပြန်ပို့မယ်
-    return res.status(500).json({ 
-      error: 'Failed to sync with Notion', 
-      details: error.message 
-    });
+    console.error(error);
+    return res.status(500).json({ error: error.message });
   }
 }
