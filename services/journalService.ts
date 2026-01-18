@@ -4,8 +4,8 @@ const STORAGE_KEY = 'oneline_entries';
 const CONFIG_KEY = 'oneline_config';
 
 /**
- * Mock Service (Local Storage)
- * Simulates network calls to demonstrate the UI flow before Notion integration.
+ * Journal Service
+ * Manages local storage for offline capability and syncs with the Vercel/Notion backend.
  */
 export class MockJournalService implements IJournalService {
   private config: NotionConfig | null = null;
@@ -37,14 +37,15 @@ export class MockJournalService implements IJournalService {
   }
 
   async getEntries(): Promise<JournalEntry[]> {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Simulate network delay for effect, though purely local now
+    await new Promise(resolve => setTimeout(resolve, 300));
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   }
 
   async saveEntry(entry: Omit<JournalEntry, 'id'>): Promise<JournalEntry> {
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // 1. Optimistic Update: Save to Local Storage immediately
+    await new Promise(resolve => setTimeout(resolve, 500)); // Keep a small delay for UI feel
     
     const newEntry: JournalEntry = {
       ...entry,
@@ -56,10 +57,35 @@ export class MockJournalService implements IJournalService {
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
     
-    // In a real app, this is where we would also trigger the Notion API call
+    // 2. Real Sync to Notion via Vercel Function
     if (this.config?.apiKey && this.config?.databaseId) {
-       console.log('Attempting to sync with Notion (Mock):', this.config);
-       // this.syncToNotion(newEntry); 
+       try {
+         const response = await fetch('/api/notion', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-notion-token': this.config.apiKey,
+              'x-database-id': this.config.databaseId
+            },
+            body: JSON.stringify({
+              text: entry.text,
+              mood: entry.mood,
+              date: entry.date
+            })
+         });
+
+         if (!response.ok) {
+           const errorData = await response.json();
+           console.error('Notion Sync Failed:', errorData);
+           // In a full app, we might mark the entry as "unsynced" in local storage here
+         } else {
+           console.log('Successfully synced to Notion');
+         }
+       } catch (error) {
+         console.error('Network Error during Notion Sync:', error);
+       }
+    } else {
+      console.warn('Skipping Notion sync: Missing API Key or Database ID');
     }
 
     return newEntry;
