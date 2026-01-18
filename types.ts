@@ -35,3 +35,5 @@ export enum Tab {
   History = 'history',
   Settings = 'settings'
 }
+
+export type Theme = 'light' | 'dark' | 'system';

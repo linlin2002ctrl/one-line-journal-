@@ -9,11 +9,11 @@ interface EntryListProps {
 
 const getMoodIcon = (mood: Mood) => {
   switch (mood) {
-    case Mood.Happy: return <Smile size={16} className="text-green-400" />;
+    case Mood.Happy: return <Smile size={16} className="text-green-500" />;
     case Mood.Neutral: return <Meh size={16} className="text-gray-400" />;
-    case Mood.Sad: return <Frown size={16} className="text-blue-400" />;
-    case Mood.Energetic: return <Zap size={16} className="text-yellow-400" />;
-    case Mood.Tired: return <Coffee size={16} className="text-purple-400" />;
+    case Mood.Sad: return <Frown size={16} className="text-blue-500" />;
+    case Mood.Energetic: return <Zap size={16} className="text-yellow-500" />;
+    case Mood.Tired: return <Coffee size={16} className="text-purple-500" />;
     default: return <Meh size={16} />;
   }
 };
@@ -53,15 +53,15 @@ export const EntryList: React.FC<EntryListProps> = ({ entries, isLoading }) => {
   return (
     <div className="space-y-3 pb-24">
       {entries.map((entry) => (
-        <div key={entry.id} className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">
+        <div key={entry.id} className="bg-surface p-4 rounded-xl border border-primary/5 shadow-sm transition-colors">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 bg-black/20 px-2 py-1 rounded-md">
+            <div className="flex items-center gap-2 bg-primary/5 px-2 py-1 rounded-md">
               {getMoodIcon(entry.mood)}
               <span className="text-xs font-medium text-secondary uppercase tracking-wider">{entry.mood}</span>
             </div>
-            <span className="text-xs text-zinc-500">{formatDate(entry.date)}</span>
+            <span className="text-xs text-secondary">{formatDate(entry.date)}</span>
           </div>
-          <p className="text-zinc-200 leading-relaxed font-light text-lg">
+          <p className="text-primary leading-relaxed font-light text-lg">
             {entry.text}
           </p>
         </div>

@@ -13,22 +13,40 @@
         theme: {
           extend: {
             colors: {
-              background: '#09090b', // Zinc 950
-              surface: '#18181b',    // Zinc 900
-              primary: '#e4e4e7',    // Zinc 200
-              secondary: '#a1a1aa',  // Zinc 400
-              accent: '#3b82f6',     // Blue 500
+              background: 'var(--bg-background)', 
+              surface: 'var(--bg-surface)',    
+              primary: 'var(--text-primary)',    
+              secondary: 'var(--text-secondary)',  
+              accent: '#3b82f6',     
             }
           }
         }
       }
     </script>
     <style>
-      body {
-        background-color: #09090b;
-        color: #e4e4e7;
-        -webkit-tap-highlight-color: transparent;
+      :root {
+        /* Light Mode Defaults */
+        --bg-background: #fafafa; /* Zinc 50 */
+        --bg-surface: #ffffff;    /* White */
+        --text-primary: #18181b;  /* Zinc 900 */
+        --text-secondary: #71717a; /* Zinc 500 */
       }
+
+      .dark {
+        /* Dark Mode Overrides */
+        --bg-background: #09090b; /* Zinc 950 */
+        --bg-surface: #18181b;    /* Zinc 900 */
+        --text-primary: #e4e4e7;  /* Zinc 200 */
+        --text-secondary: #a1a1aa; /* Zinc 400 */
+      }
+
+      body {
+        background-color: var(--bg-background);
+        color: var(--text-primary);
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
       /* Hide scrollbar for clean mobile look */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
@@ -55,5 +73,18 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+      // Initialize theme immediately to prevent flash
+      (function() {
+        const savedTheme = localStorage.getItem('oneline_theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark) || (savedTheme === 'system' && systemPrefersDark)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
   </body>
 </html>
